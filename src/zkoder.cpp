@@ -51,10 +51,12 @@ class ZCoder {
             // Procitaj cijelu datoteku
             char c;
 
-            while (!feof(f)) {
-                fscanf(f, "%c", &c);
+            c = fgetc(f);
 
+            while (!feof(f)) {
                 this->information += c;
+
+                c = fgetc(f);
             }
 
             fclose(f);
@@ -68,6 +70,8 @@ class ZCoder {
 
         void writeEncodedInformation(string &file_path) {
             FILE *f = fopen(file_path.c_str(), "w");
+
+            string encodedInformation = "";
 
             int n = this->information.size(); 
 
@@ -89,8 +93,10 @@ class ZCoder {
 
                 int d = 8*d3 + 4*d2 + 2*d1 + d0;
 
-                fprintf(f, "%s%s", data.c_str(), this->CRC[d].c_str());
+                encodedInformation += data + CRC[d];
             }
+
+            fprintf(f, "%s", encodedInformation.c_str());
 
             fclose(f);
         }

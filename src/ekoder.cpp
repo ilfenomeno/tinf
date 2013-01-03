@@ -186,10 +186,12 @@ class ECoder {
             // Procitaj cijelu datoteku
             char c;
 
-            while (!feof(f)) {
-                fscanf(f, "%c", &c);
+            c = fgetc(f);
 
+            while (!feof(f)) {
                 this->information += c;
+
+                c = fgetc(f);
             }
 
             fclose(f);
@@ -222,6 +224,8 @@ class ECoder {
         void writeEncodedInformation(string &file_path) {
             FILE *f = fopen(file_path.c_str(), "w");
 
+            string encodedInformation = "";
+
             int n = this->information.size(); 
 
             // Prodji po svakom simbolu informacije i umjesto njeg
@@ -229,8 +233,10 @@ class ECoder {
             for (int i = 0; i < n; i++) {
                 char symbol = this->information[i];
 
-                fprintf(f, "%s", this->codeMap[symbol].c_str());
+                encodedInformation += this->codeMap[symbol];
             }
+
+            fprintf(f, "%s", encodedInformation.c_str());
 
             fclose(f);
         }

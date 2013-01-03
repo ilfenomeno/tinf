@@ -1,14 +1,18 @@
 #include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <string>
 using namespace std;
 
 class Channel {
     private:
         string information;
+        int errorProb; 
 
     public:
         Channel() {
             this->information = "";
+            this->errorProb = 2000; // 1/2000 je vjerojatnost pogreske, al ovako je lakse racunat
         }
 
         void readInformation(string &file_path) {
@@ -17,16 +21,40 @@ class Channel {
             // Procitaj cijelu datoteku
             char c;
 
-            while (!feof(f)) {
-                fscanf(f, "%c", &c);
+            c = fgetc(f);
 
+            while (!feof(f)) {
                 this->information += c;
+
+                c = fgetc(f);
             }
 
             fclose(f);
         }
 
         void applyNoise() {
+            srand(time(NULL)); 
+
+            int n = this->information.size();
+
+            for (int i = 0; i < n; i++) {
+                // Baca brojeve u intervalu [0, errorProb>, tj. [0, 2000>
+                int ranNum = rand() % this->errorProb;
+
+                // Ako je pogodjen neki broj (bilo koji) od 2000 brojeva, onda promijeni bit
+                if (ranNum == 666) {
+                    char c = this->information[i];
+
+                    if (c == '0') {
+                        c = '1';
+                    }
+                    else if (c == '1') {
+                        c = '0';
+                    }
+
+                    this->information[i] = c;
+                }
+            }
         }
 
         void writeNoisyInformation(string &file_path) {
