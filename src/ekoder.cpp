@@ -139,6 +139,7 @@ class ECoder {
 
         // Privatne varijable
         string information; // originalna informacija
+        string encodedInformation;
         map<char, string> codeMap;  // mapa (rjecnik) kodova za svaki simbol
 
         // Privatne funkcije
@@ -177,13 +178,14 @@ class ECoder {
     public:
         // Javne funkcije
         ECoder() {
-            this->information = "";
         }
 
         void readInformation(string &file_path) {
             FILE *f = fopen(file_path.c_str(), "r");
 
             // Procitaj cijelu datoteku
+            this->information = "";
+
             char c;
 
             c = fgetc(f);
@@ -203,6 +205,17 @@ class ECoder {
             HuffmanTree ht = HuffmanTree(sp);
 
             this->codeMap = ht.getCodeMap();
+
+            int n = this->information.size(); 
+
+            this->encodedInformation = "";
+
+            // Prodji po svakom simbolu informacije i zamijeni ga pripadnim kodom
+            for (int i = 0; i < n; i++) {
+                char symbol = this->information[i];
+
+                this->encodedInformation += this->codeMap[symbol];
+            }
         }
 
         void writeSymbolCodes(string &file_path) {
@@ -224,19 +237,7 @@ class ECoder {
         void writeEncodedInformation(string &file_path) {
             FILE *f = fopen(file_path.c_str(), "w");
 
-            string encodedInformation = "";
-
-            int n = this->information.size(); 
-
-            // Prodji po svakom simbolu informacije i umjesto njeg
-            // ispisi njegov kod
-            for (int i = 0; i < n; i++) {
-                char symbol = this->information[i];
-
-                encodedInformation += this->codeMap[symbol];
-            }
-
-            fprintf(f, "%s", encodedInformation.c_str());
+            fprintf(f, "%s", this->encodedInformation.c_str());
 
             fclose(f);
         }
@@ -251,7 +252,6 @@ int main(int argc, char **argv) {
 
     ecoder.readInformation(source_path);
     ecoder.encode();
-
     ecoder.writeSymbolCodes(ecoderCode_path);
     ecoder.writeEncodedInformation(ecoderOut_path);
     

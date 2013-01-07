@@ -5,6 +5,7 @@ using namespace std;
 class ZCoder {
     private:
         string information;
+        string encodedInformation;
         string CRC[20];
 
         // "Preizracunavanje" svih mogucih zastitnih kodova sa generirajucim polinomom x^3 + x + 1
@@ -42,13 +43,17 @@ class ZCoder {
 
     public:
         ZCoder() {
-            this->information = "";
+            // Samo je 16 mogucih podataka, zato je bolje to odmah
+            // izracunat za polinom x^3 + x + 1, nego svaki put racunat
+            this->precomputeCRC();
         }
 
         void readInformation(string &file_path) {
             FILE *f = fopen(file_path.c_str(), "r");
 
             // Procitaj cijelu datoteku
+            this->information = "";
+
             char c;
 
             c = fgetc(f);
@@ -63,16 +68,6 @@ class ZCoder {
         }
 
         void encode() {
-            // Samo je 16 mogucih podataka, zato je bolje to odmah
-            // izracunat za polinom x^3 + x + 1, nego svaki put racunat
-            this->precomputeCRC();
-        }
-
-        void writeEncodedInformation(string &file_path) {
-            FILE *f = fopen(file_path.c_str(), "w");
-
-            string encodedInformation = "";
-
             int n = this->information.size(); 
 
             // Dodaj 0 na kraju ako je potrebno da bude djeljivo s 4
@@ -81,6 +76,8 @@ class ZCoder {
 
             // Mozda se promijenio n pa ga treba opet nac
             n = this->information.size();
+
+            this->encodedInformation = "";
 
             for (int i = 0; i < n; i += 4) {
                 string data = this->information.substr(i, 4); 
@@ -93,8 +90,12 @@ class ZCoder {
 
                 int d = 8*d3 + 4*d2 + 2*d1 + d0;
 
-                encodedInformation += data + CRC[d];
+                this->encodedInformation += data + CRC[d];
             }
+        }
+
+        void writeEncodedInformation(string &file_path) {
+            FILE *f = fopen(file_path.c_str(), "w");
 
             fprintf(f, "%s", encodedInformation.c_str());
 

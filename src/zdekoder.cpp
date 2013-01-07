@@ -5,50 +5,75 @@ using namespace std;
 class ZDecoder {
     private:
         string information;
-        string CRC[20];
+        string decodedInformation;
+        int syndromeIndex[10];
 
-        // "Preizracunavanje" svih mogucih zastitnih kodova sa generirajucim polinomom x^3 + x + 1
-        void precomputeCRC() {
+        // Mapiraj poziciju pogreske za sve sindrome
+        // Sindromi su u intervalu <000, 111]
+        // 000 znaci da nema pogreske
+        void mapSyndromes() {
+            // Nema pogreske
+            syndromeIndex[0] = 0;
+
+            // Sindrom 011 znaci da se pogreska desila na prvom bitu
+            syndromeIndex[3] = 1;
+
+            // Sindrom 110 -> pogreska na drugom bitu
+            syndromeIndex[6] = 2;
+
+            syndromeIndex[7] = 3; // 111
+            syndromeIndex[5] = 4; // 101
+            syndromeIndex[1] = 5; // 001
+            syndromeIndex[2] = 6; // 010
+            syndromeIndex[4] = 7; // 100
+        }
+
+        int computeSyndrome(string &s) {
+            // String s moramo prosirit sa 000 (extendat)
+            string sex = s + "000";
+
+            int n = sex.size();
+
             bool r3, r2, r1;
+            
+            r3 = r2 = r1 = 0;
 
-            for (int i = 0; i < 16; i++) {
-                int data = i;
+            for (int i = 0; i < n; i++) {
+                bool bit = sex[i] == '1';
 
-                r3 = r2 = r1 = 0;
+                bool r3_old = r3;
+                bool r2_old = r2;
+                bool r1_old = r1;
 
-                // Dodaj 3 nule na kraj, tj. pomnozi sa 8, tj. left shiftaj za 3
-                data <<= 3;
-
-                for (int j = 6; j >= 0; j--) {
-                    bool bit = data & (1 << j); // Bit na j-toj poziciji 
-
-                    // Trebaju nam privremeni spremnici za r3, r2 i r1 jer se mijenjaju
-                    bool r3_old = r3;
-                    bool r2_old = r2;
-                    bool r1_old = r1;
-
-                    r3 = r2_old;
-                    r2 = r1_old ^ r3_old;
-                    r1 = bit ^ r3_old;
-                }
-
-                CRC[i] = "";
-
-                CRC[i] += '0' + r3;
-                CRC[i] += '0' + r2;
-                CRC[i] += '0' + r1;
+                r3 = r2_old;
+                r2 = r1_old ^ r3_old;
+                r1 = bit ^ r3_old;
             }
+
+            int syndrome = 4*r3 + 2*r2 + r1;
+
+            return syndrome;
+        }
+
+        // Izracunaj sindrom, detektiraj na kojem se bitu desila pogreska
+        // te vrati tu poziciju
+        int getErrorIndex(string &s) {
+            int syndrome = this->computeSyndrome(s);
+
+            return this->syndromeIndex[syndrome];
         }
 
     public:
         ZDecoder() {
-            this->information = "";
+            this->mapSyndromes();
         }
 
         void readInformation(string &file_path) {
             FILE *f = fopen(file_path.c_str(), "r");
 
             // Procitaj cijelu datoteku
+            this->information = "";
+
             char c;
 
             c = fgetc(f);
@@ -63,19 +88,29 @@ class ZDecoder {
         }
 
         void decode() {
-            // Samo je 16 mogucih podataka, zato je bolje to odmah
-            // izracunat za polinom x^3 + x + 1, nego svaki put racunat
-            this->precomputeCRC();
+            int n = this->information.size();
+
+            this->decodedInformation = "";
+
+            for (int i = 0; i < n; i += 7) {
+                string data = this->information.substr(i, 7);
+
+                int errorIndex = this->getErrorIndex(data);
+
+                // Ako ima pogreske, ispravi je
+                if (errorIndex) {
+                   data[7 - errorIndex] = !(data[7 - errorIndex] == '1') + '0';
+                }
+
+                // Makni zadnja 3 zalihosna bita
+                this->decodedInformation += data.substr(0, 4);
+            }
         }
 
         void writeDecodedInformation(string &file_path) {
             FILE *f = fopen(file_path.c_str(), "w");
 
-            string decodedInformation = "";
-
-            int n = this->information.size(); 
-
-            fprintf(f, "%s", decodedInformation.c_str());
+            fprintf(f, "%s", this->decodedInformation.c_str());
 
             fclose(f);
         }
